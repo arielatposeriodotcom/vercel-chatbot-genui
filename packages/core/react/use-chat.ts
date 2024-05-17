@@ -375,6 +375,7 @@ export function useChat({
         tools,
         tool_choice,
         data,
+        include_only_last_message
       }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
@@ -382,7 +383,7 @@ export function useChat({
       }
 
       const chatRequest: ChatRequest = {
-        messages: messagesRef.current.concat(message as Message),
+        messages: !include_only_last_message ? messagesRef.current.concat(message as Message) : [message as Message],
         options,
         data,
         ...(functions !== undefined && { functions }),
