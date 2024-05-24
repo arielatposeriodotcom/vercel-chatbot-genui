@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  createEventSourcePassThroughHandler,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
@@ -185,6 +186,45 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       rawResponse: { headers: responseHeaders },
       warnings: [],
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
+    };
+  }
+
+  async doRawStream(
+    options: Parameters<LanguageModelV1['doStream']>[0],
+  ): Promise<
+    Omit<Awaited<ReturnType<LanguageModelV1['doStream']>>, 'stream'> & {
+      stream: ReadableStream<Uint8Array>;
+    }
+  > {
+    const args = this.getArgs(options);
+
+    const { responseHeaders, value: responseBody } = await postJsonToApi({
+      url: `${this.config.baseURL}/chat/completions`,
+      headers: this.config.headers(),
+      body: {
+        ...args,
+        stream: true,
+
+        // only include stream_options when in strict compatibility mode:
+        stream_options:
+          this.config.compatibility === 'strict'
+            ? { include_usage: true }
+            : undefined,
+      },
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createEventSourcePassThroughHandler(
+        openaiChatChunkSchema,
+      ),
+      abortSignal: options.abortSignal,
+    });
+
+    const { messages: rawPrompt, ...rawSettings } = args;
+
+    return {
+      stream: responseBody,
+      rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
+      warnings: [],
     };
   }
 
