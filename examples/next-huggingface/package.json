@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@huggingface/inference": "^2.5.1",
+    "@huggingface/inference": "^2.7.0",
     "next": "latest",
     "ai": "latest",
     "react": "^18",
